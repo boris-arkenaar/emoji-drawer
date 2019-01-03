@@ -16,7 +16,7 @@ class AddN extends React.Component<IProps> {
         <h2>Add {n} to...</h2>
         <ul>
           { numbers.map((specific) => (
-            <li>...{specific} resolves to {addSpecific(specific)}</li>
+            <li key={specific}>...{specific} resolves to {addSpecific(specific)}</li>
           ))}
         </ul>
       </div>
