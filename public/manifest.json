@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Emoji Drawer",
+  "name": "Draw Emoji's on your body",
   "icons": [
     {
       "src": "favicon.ico",
