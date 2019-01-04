@@ -2,6 +2,7 @@
   "name": "my-app",
   "version": "0.1.0",
   "private": true,
+  "homepage" : "http://boris-arkenaar.github.io/emoji-drawer",
   "dependencies": {
     "@tensorflow-models/posenet": "^0.2.3",
     "@tensorflow/tfjs": "^0.14.1",
@@ -13,7 +14,9 @@
     "start": "react-scripts-ts start",
     "build": "react-scripts-ts build",
     "test": "react-scripts-ts test --env=jsdom",
-    "eject": "react-scripts-ts eject"
+    "eject": "react-scripts-ts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "devDependencies": {
     "@types/enzyme": "^3.1.15",
@@ -24,6 +27,7 @@
     "@types/react-dom": "^16.0.11",
     "enzyme": "^3.8.0",
     "enzyme-adapter-react-16": "^1.7.1",
+    "gh-pages": "^2.0.1",
     "react-test-renderer": "^16.7.0",
     "typescript": "^3.2.2"
   }
