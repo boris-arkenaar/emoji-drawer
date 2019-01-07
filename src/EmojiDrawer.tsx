@@ -15,6 +15,7 @@ interface IEmojiDrawerState {
   videoWidth: number,
   videoHeight: number,
   cameras: ICamera[],
+  camera: number
 }
 
 const minScore = 0.5;
@@ -45,7 +46,8 @@ class EmojiDrawer extends React.Component {
   public state: IEmojiDrawerState = {
     videoWidth: 0,
     videoHeight: 0,
-    cameras: []
+    cameras: [],
+    camera: -1
   };
 
   private canvas;
@@ -63,9 +65,12 @@ class EmojiDrawer extends React.Component {
     this.setState({ emoji });
   }
 
-  private handleCameraChange = (event) => {
-    const deviceId = event.target.value;
-    this.setState({ deviceId });
+  private handleSwitchCameraClick = () => {
+    if (this.state.cameras.length > 1) {
+      const nextCamera = this.state.camera + 1;
+      const camera = nextCamera >= this.state.cameras.length ? 0 : nextCamera;
+      this.setState({ camera });
+    }
   }
 
   private trackBodyPart = async () => {
@@ -125,8 +130,9 @@ class EmojiDrawer extends React.Component {
       // Turn it into plain objects
       .map(({ deviceId, label }) => ({ deviceId, label }));
     console.log('cameras', cameras);
-    const deviceId = cameras.length && cameras[0].deviceId;
-    this.setState({ cameras, deviceId });
+    if (cameras.length) {
+      this.setState({ cameras, camera: 0 });
+    }
   }
 
   public componentWillUnmount() {
@@ -135,13 +141,14 @@ class EmojiDrawer extends React.Component {
   }
 
   public async componentDidUpdate(prevProps, prevState) {
-    const { videoWidth, videoHeight, deviceId } = this.state;
+    const { videoWidth, videoHeight, camera } = this.state;
     const widthChanged = videoWidth !== prevState.videoWidth;
     const heightChanged = videoHeight !== prevState.videoHeight;
-    const deviceChanged = deviceId !== prevState.deviceId;
-    if (!(videoWidth && deviceId)
-      || !(widthChanged || heightChanged || deviceChanged)
-    ) {
+    const cameraChanged = camera !== prevState.camera;
+    if (!(videoWidth
+      && this.state.cameras.length
+      && (widthChanged || heightChanged || cameraChanged)
+    )) {
       return;
     }
 
@@ -149,7 +156,7 @@ class EmojiDrawer extends React.Component {
       video: {
         width: videoWidth,
         height: videoHeight,
-        deviceId
+        deviceId: this.state.cameras[camera].deviceId
       }
     };
 
@@ -157,16 +164,16 @@ class EmojiDrawer extends React.Component {
       console.log('cameras before', this.state.cameras);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       const videoTracks = stream.getVideoTracks();
-      const camera = this.state.cameras.find((camera) => camera.deviceId === this.state.deviceId);
-      if (camera && !camera.label) {
-        const cameras = this.state.cameras.map((camera) => {
-          console.log('test', camera);
-          console.log('test2', { ...camera });
-          return camera.deviceId === this.state.deviceId
+      const currentCamera = this.state.cameras[camera];
+      if (currentCamera && !currentCamera.label) {
+        const cameras = this.state.cameras.map((cameraData, index) => {
+          console.log('test', cameraData);
+          console.log('test2', { ...cameraData });
+          return camera === index
             ? {
-              ...camera,
+              ...cameraData,
               label: videoTracks[0].label
-            } : camera;
+            } : cameraData;
         });
         this.setState({ cameras });
         console.log('cameras after', cameras);
@@ -182,7 +189,7 @@ class EmojiDrawer extends React.Component {
   }
 
   public render() {
-    const { videoWidth, videoHeight, cameras } = this.state;
+    const { videoWidth, videoHeight } = this.state;
     return (
       <div className="EmojiDrawer">
         <section className="controls">
@@ -212,19 +219,9 @@ class EmojiDrawer extends React.Component {
               ))}
             </select>
           </label>
-          <label>
-            <span>📷:</span>
-            <select onChange={this.handleCameraChange}>
-              { cameras.map((camera, index) => (
-                <option
-                  key={camera.deviceId}
-                  value={camera.deviceId}
-                >
-                  { camera.label ? camera.label.split(' ')[0] : `Camera ${index + 1}`}
-                </option>
-              ))}
-            </select>
-          </label>
+          <button onClick={this.handleSwitchCameraClick}>
+            <span>Switch camera</span>
+          </button>
         </section>
         <div className="video-container">
           <p className="loading">Loading video feed...</p>

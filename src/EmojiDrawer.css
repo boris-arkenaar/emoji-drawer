@@ -36,6 +36,19 @@
   background-color: #222;
 }
 
+.EmojiDrawer button {
+  background-image: url('switch-camera.png');
+  background-size: cover;
+  background-color: #222;
+  width: 30px;
+  height: 30px;
+  border: none;
+}
+
+.EmojiDrawer button span {
+  display: none;
+}
+
 .EmojiDrawer canvas {
   flex-grow: 1;
 }
