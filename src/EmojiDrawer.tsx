@@ -54,6 +54,7 @@ class EmojiDrawer extends React.Component {
   private ctx;
   private net;
   private video;
+  private stream;
 
   private handleBodyPartChange = (event) => {
     const bodyPart = event.target.value;
@@ -150,6 +151,7 @@ class EmojiDrawer extends React.Component {
     const widthChanged = videoWidth !== prevState.videoWidth;
     const heightChanged = videoHeight !== prevState.videoHeight;
     const cameraChanged = camera !== prevState.camera;
+
     if (!(videoWidth
       && this.state.cameras.length
       && (widthChanged || heightChanged || cameraChanged)
@@ -157,19 +159,25 @@ class EmojiDrawer extends React.Component {
       return;
     }
 
+    const currentCamera = this.state.cameras[camera];
     const constraints = {
       video: {
         width: videoWidth,
         height: videoHeight,
-        deviceId: this.state.cameras[camera].deviceId
+        deviceId: currentCamera.deviceId
       }
     };
 
+    if (this.stream) {
+      this.stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+    }
+
     try {
       console.log('cameras before', this.state.cameras);
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      const videoTracks = stream.getVideoTracks();
-      const currentCamera = this.state.cameras[camera];
+      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const videoTracks = this.stream.getVideoTracks();
       if (currentCamera && !currentCamera.label) {
         const cameras = this.state.cameras.map((cameraData, index) => {
           console.log('test', cameraData);
@@ -186,7 +194,7 @@ class EmojiDrawer extends React.Component {
       console.log('videoTracks', videoTracks);
       console.log('Using video device: ' + videoTracks[0].label);
       if (this.video.current) {
-        this.video.current.srcObject = stream;
+        this.video.current.srcObject = this.stream;
         this.video.current.load();
         this.video.current.play();
       }
