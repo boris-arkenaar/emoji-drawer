@@ -30,10 +30,10 @@
 }
 
 .EmojiDrawer label,
-.EmojiDrawer select,
-.EmojiDrawer button {
+.EmojiDrawer select {
   color: white;
   font-size: 1rem;
+  background-color: #222;
 }
 
 .EmojiDrawer canvas {

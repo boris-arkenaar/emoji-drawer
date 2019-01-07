@@ -121,7 +121,9 @@ class EmojiDrawer extends React.Component {
     const devices = await navigator.mediaDevices.enumerateDevices();
     console.log('devices', devices);
     const cameras = devices
-      .filter((device) => device.kind === 'videoinput' && device.label.length);
+      .filter((device) => device.kind === 'videoinput')
+      // Turn it into plain objects
+      .map(({ deviceId, label }) => ({ deviceId, label }));
     console.log('cameras', cameras);
     const deviceId = cameras.length && cameras[0].deviceId;
     this.setState({ cameras, deviceId });
@@ -152,8 +154,23 @@ class EmojiDrawer extends React.Component {
     };
 
     try {
+      console.log('cameras before', this.state.cameras);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       const videoTracks = stream.getVideoTracks();
+      const camera = this.state.cameras.find((camera) => camera.deviceId === this.state.deviceId);
+      if (camera && !camera.label) {
+        const cameras = this.state.cameras.map((camera) => {
+          console.log('test', camera);
+          console.log('test2', { ...camera });
+          return camera.deviceId === this.state.deviceId
+            ? {
+              ...camera,
+              label: videoTracks[0].label
+            } : camera;
+        });
+        this.setState({ cameras });
+        console.log('cameras after', cameras);
+      }
       console.log('videoTracks', videoTracks);
       console.log('Using video device: ' + videoTracks[0].label);
       if (this.video.current) {
@@ -198,17 +215,16 @@ class EmojiDrawer extends React.Component {
           <label>
             <span>📷:</span>
             <select onChange={this.handleCameraChange}>
-              { cameras.map((camera) => (
+              { cameras.map((camera, index) => (
                 <option
                   key={camera.deviceId}
                   value={camera.deviceId}
                 >
-                  { camera.label.split(' ')[0] }
+                  { camera.label ? camera.label.split(' ')[0] : `Camera ${index + 1}`}
                 </option>
               ))}
             </select>
           </label>
-          <button></button>
         </section>
         <div className="video-container">
           <p className="loading">Loading video feed...</p>
