@@ -3,11 +3,18 @@ import * as React from 'react';
 
 import './EmojiDrawer.css';
 
+interface ICamera {
+  deviceId: string,
+  label: string
+}
+
 interface IEmojiDrawerState {
   bodyPart?: string,
   emoji?: number,
+  deviceId?: string
   videoWidth: number,
-  videoHeight: number
+  videoHeight: number,
+  cameras: ICamera[],
 }
 
 const minScore = 0.5;
@@ -37,7 +44,8 @@ const emojis = Array(79)
 class EmojiDrawer extends React.Component {
   public state: IEmojiDrawerState = {
     videoWidth: 0,
-    videoHeight: 0
+    videoHeight: 0,
+    cameras: []
   };
 
   private canvas;
@@ -53,6 +61,11 @@ class EmojiDrawer extends React.Component {
   private handleEmojiChange = (event) => {
     const emoji = event.target.value;
     this.setState({ emoji });
+  }
+
+  private handleCameraChange = (event) => {
+    const deviceId = event.target.value;
+    this.setState({ deviceId });
   }
 
   private trackBodyPart = async () => {
@@ -104,6 +117,14 @@ class EmojiDrawer extends React.Component {
     window.addEventListener('resize', this.getSizes);
     this.getSizes();
     this.trackBodyPart();
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    console.log('devices', devices);
+    const cameras = devices
+      .filter((device) => device.kind === 'videoinput' && device.label.length);
+    console.log('cameras', cameras);
+    const deviceId = cameras.length && cameras[0].deviceId;
+    this.setState({ cameras, deviceId });
   }
 
   public componentWillUnmount() {
@@ -112,12 +133,23 @@ class EmojiDrawer extends React.Component {
   }
 
   public async componentDidUpdate(prevProps, prevState) {
-    const { videoWidth, videoHeight } = this.state;
-    if (videoWidth === prevState.videoWidth && videoHeight === prevState.videoHeight) {
+    const { videoWidth, videoHeight, deviceId } = this.state;
+    const widthChanged = videoWidth !== prevState.videoWidth;
+    const heightChanged = videoHeight !== prevState.videoHeight;
+    const deviceChanged = deviceId !== prevState.deviceId;
+    if (!(videoWidth && deviceId)
+      || !(widthChanged || heightChanged || deviceChanged)
+    ) {
       return;
     }
 
-    const constraints = { video: { width: videoWidth, height: videoHeight } };
+    const constraints = {
+      video: {
+        width: videoWidth,
+        height: videoHeight,
+        deviceId
+      }
+    };
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -133,7 +165,7 @@ class EmojiDrawer extends React.Component {
   }
 
   public render() {
-    const { videoWidth, videoHeight } = this.state;
+    const { videoWidth, videoHeight, cameras } = this.state;
     return (
       <div className="EmojiDrawer">
         <section className="controls">
@@ -163,7 +195,20 @@ class EmojiDrawer extends React.Component {
               ))}
             </select>
           </label>
-          <button>📷</button>
+          <label>
+            <span>📷:</span>
+            <select onChange={this.handleCameraChange}>
+              { cameras.map((camera) => (
+                <option
+                  key={camera.deviceId}
+                  value={camera.deviceId}
+                >
+                  { camera.label.split(' ')[0] }
+                </option>
+              ))}
+            </select>
+          </label>
+          <button></button>
         </section>
         <div className="video-container">
           <p className="loading">Loading video feed...</p>
