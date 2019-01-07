@@ -164,7 +164,7 @@ class EmojiDrawer extends React.Component {
       video: {
         width: videoWidth,
         height: videoHeight,
-        deviceId: currentCamera.deviceId
+        deviceId: { exact: currentCamera.deviceId }
       }
     };
 
