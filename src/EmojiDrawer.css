@@ -7,3 +7,14 @@
 .EmojiDrawer canvas {
   flex-grow: 1;
 }
+
+.EmojiDrawer .video-container {
+  position: relative;
+}
+
+.EmojiDrawer .video-container .loading {
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  right: 0;
+}

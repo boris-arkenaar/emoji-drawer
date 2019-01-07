@@ -10,6 +10,7 @@ interface IEmojiDrawerState {
   videoHeight: number
 }
 
+const minScore = 0.5;
 const bodyParts = [
   'nose',
   'leftEye',
@@ -35,8 +36,8 @@ const emojis = Array(79)
 
 class EmojiDrawer extends React.Component {
   public state: IEmojiDrawerState = {
-    videoWidth: 600,
-    videoHeight: 500
+    videoWidth: 0,
+    videoHeight: 0
   };
 
   private canvas;
@@ -54,18 +55,20 @@ class EmojiDrawer extends React.Component {
     this.setState({ emoji });
   }
 
-  private handleTrackNoseClick = async () => {
-    const bodyPartIndex = this.state.bodyPart
-      ? bodyParts.indexOf(this.state.bodyPart)
-      : 0;
-    this.ctx = this.canvas.current.getContext('2d');
-    const pose = await this.net.estimateSinglePose(this.video.current, 0.5, true, 16);
-    const nosePos = pose.keypoints[bodyPartIndex].position;
-    this.draw(nosePos.y, nosePos.x, 3, 'aqua');
-    requestAnimationFrame(this.handleTrackNoseClick);
+  private trackBodyPart = async () => {
+    if (this.state.videoWidth) {
+      const bodyPartIndex = this.state.bodyPart
+        ? bodyParts.indexOf(this.state.bodyPart)
+        : 0;
+      const pose = await this.net.estimateSinglePose(this.video.current, 0.5, true, 16);
+      const {position: {x, y}, score} = pose.keypoints[bodyPartIndex];
+      this.draw(x, y, score);
+    }
+
+    requestAnimationFrame(this.trackBodyPart);
   }
 
-  private draw = (y, x, r, color) => {
+  private draw = (x, y, score) => {
     const { videoWidth, videoHeight } = this.state;
     const emoji = this.state.emoji || emojis[0];
 
@@ -75,16 +78,16 @@ class EmojiDrawer extends React.Component {
     this.ctx.translate(-videoWidth, 0);
     this.ctx.drawImage(this.video.current, 0, 0, videoWidth, videoHeight);
     this.ctx.restore();
-
-    this.ctx.font = '20px sans-serif';
-    this.ctx.fillStyle = color;
-    this.ctx.fillText(String.fromCodePoint(emoji), x-10, y+10);
+    if (score > minScore) {
+      this.ctx.fillText(String.fromCodePoint(emoji), x-10, y+10);
+    }
   }
 
   private getSizes = () => {
     console.log('resized');
     const videoWidth = this.canvas.current.offsetWidth;
     const videoHeight = this.canvas.current.offsetHeight;
+    console.log({ videoWidth, videoHeight });
     this.setState({ videoWidth, videoHeight });
   }
 
@@ -95,9 +98,12 @@ class EmojiDrawer extends React.Component {
   }
 
   public async componentDidMount() {
+    console.log('mount');
     this.net = await posenet.load(0.75);
+    this.ctx = this.canvas.current.getContext('2d');
     window.addEventListener('resize', this.getSizes);
     this.getSizes();
+    this.trackBodyPart();
   }
 
   public componentWillUnmount() {
@@ -130,7 +136,6 @@ class EmojiDrawer extends React.Component {
     const { videoWidth, videoHeight } = this.state;
     return (
       <div className="EmojiDrawer">
-        <button onClick={this.handleTrackNoseClick}>Track nose</button>
         <select onChange={this.handleBodyPartChange}>
           { bodyParts.map((bodyPart) => (
             <option
@@ -151,13 +156,16 @@ class EmojiDrawer extends React.Component {
             </option>
           ))}
         </select>
-        <video
-          style={{ display: 'none' }}
-          autoPlay
-          height={videoHeight}
-          ref={this.video}
-          width={videoWidth}
-        />
+        <div className="video-container">
+          <p className="loading">Loading video feed...</p>
+          <video
+            style={{ display: 'none' }}
+            autoPlay
+            height={videoHeight}
+            ref={this.video}
+            width={videoWidth}
+          />
+        </div>
         <canvas
           height={videoHeight}
           ref={this.canvas}
