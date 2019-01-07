@@ -1,13 +1,15 @@
 import * as posenet from '@tensorflow-models/posenet';
 import * as React from 'react';
 
+import './EmojiDrawer.css';
+
 interface IEmojiDrawerState {
   bodyPart?: string,
-  emoji?: number
+  emoji?: number,
+  videoWidth: number,
+  videoHeight: number
 }
 
-const videoWidth = 600;
-const videoHeight = 500;
 const bodyParts = [
   'nose',
   'leftEye',
@@ -32,7 +34,10 @@ const emojis = Array(79)
   .map((value, index) => index + 128512);
 
 class EmojiDrawer extends React.Component {
-  public state: IEmojiDrawerState = {};
+  public state: IEmojiDrawerState = {
+    videoWidth: 600,
+    videoHeight: 500
+  };
 
   private canvas;
   private ctx;
@@ -61,6 +66,7 @@ class EmojiDrawer extends React.Component {
   }
 
   private draw = (y, x, r, color) => {
+    const { videoWidth, videoHeight } = this.state;
     const emoji = this.state.emoji || emojis[0];
 
     this.ctx.clearRect(0, 0, videoWidth, videoHeight);
@@ -75,6 +81,13 @@ class EmojiDrawer extends React.Component {
     this.ctx.fillText(String.fromCodePoint(emoji), x-10, y+10);
   }
 
+  private getSizes = () => {
+    console.log('resized');
+    const videoWidth = this.canvas.current.offsetWidth;
+    const videoHeight = this.canvas.current.offsetHeight;
+    this.setState({ videoWidth, videoHeight });
+  }
+
   constructor(props) {
     super(props);
     this.canvas = React.createRef();
@@ -83,10 +96,27 @@ class EmojiDrawer extends React.Component {
 
   public async componentDidMount() {
     this.net = await posenet.load(0.75);
-    const constraints = { video: { facingMode: 'user', width: videoWidth, height: videoHeight } };
+    window.addEventListener('resize', this.getSizes);
+    this.getSizes();
+  }
+
+  public componentWillUnmount() {
+    this.net.dispose();
+    window.removeEventListener('resize', this.getSizes);
+  }
+
+  public async componentDidUpdate(prevProps, prevState) {
+    const { videoWidth, videoHeight } = this.state;
+    if (videoWidth === prevState.videoWidth && videoHeight === prevState.videoHeight) {
+      return;
+    }
+
+    const constraints = { video: { width: videoWidth, height: videoHeight } };
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       const videoTracks = stream.getVideoTracks();
+      console.log('videoTracks', videoTracks);
       console.log('Using video device: ' + videoTracks[0].label);
       if (this.video.current) {
         this.video.current.srcObject = stream;
@@ -97,9 +127,9 @@ class EmojiDrawer extends React.Component {
   }
 
   public render() {
+    const { videoWidth, videoHeight } = this.state;
     return (
-      <div>
-        <h2>Emoji Drawer</h2>
+      <div className="EmojiDrawer">
         <button onClick={this.handleTrackNoseClick}>Track nose</button>
         <select onChange={this.handleBodyPartChange}>
           { bodyParts.map((bodyPart) => (

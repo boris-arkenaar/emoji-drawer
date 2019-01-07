@@ -1,0 +1,9 @@
+.EmojiDrawer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.EmojiDrawer canvas {
+  flex-grow: 1;
+}
