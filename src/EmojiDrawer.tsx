@@ -66,9 +66,11 @@ class EmojiDrawer extends React.Component {
   }
 
   private handleSwitchCameraClick = () => {
+    console.log('switch?', this.state.cameras);
     if (this.state.cameras.length > 1) {
       const nextCamera = this.state.camera + 1;
       const camera = nextCamera >= this.state.cameras.length ? 0 : nextCamera;
+      console.log('switch!', camera);
       this.setState({ camera });
     }
   }
@@ -182,6 +184,8 @@ class EmojiDrawer extends React.Component {
       console.log('Using video device: ' + videoTracks[0].label);
       if (this.video.current) {
         this.video.current.srcObject = stream;
+        this.video.current.load();
+        this.video.current.play();
       }
     } catch (error) {
       console.error(error);
@@ -227,7 +231,6 @@ class EmojiDrawer extends React.Component {
           <p className="loading">Loading video feed...</p>
           <video
             style={{ display: 'none' }}
-            autoPlay
             height={videoHeight}
             ref={this.video}
             width={videoWidth}
