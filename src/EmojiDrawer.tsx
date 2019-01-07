@@ -136,26 +136,35 @@ class EmojiDrawer extends React.Component {
     const { videoWidth, videoHeight } = this.state;
     return (
       <div className="EmojiDrawer">
-        <select onChange={this.handleBodyPartChange}>
-          { bodyParts.map((bodyPart) => (
-            <option
-              key={bodyPart}
-              value={bodyPart}
-            >
-              { bodyPart }
-            </option>
-          ))}
-        </select>
-        <select onChange={this.handleEmojiChange}>
-          { emojis.map((emoji) => (
-            <option
-              key={emoji}
-              value={emoji}
-            >
-              { String.fromCodePoint(emoji) }
-            </option>
-          ))}
-        </select>
+        <section className="controls">
+          <label>
+            <span>🦶:</span>
+            <select onChange={this.handleBodyPartChange}>
+              { bodyParts.map((bodyPart) => (
+                <option
+                  key={bodyPart}
+                  value={bodyPart}
+                >
+                  { bodyPart }
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="emoji">
+            <span>😶:</span>
+            <select onChange={this.handleEmojiChange}>
+              { emojis.map((emoji) => (
+                <option
+                  key={emoji}
+                  value={emoji}
+                >
+                  { String.fromCodePoint(emoji) }
+                </option>
+              ))}
+            </select>
+          </label>
+          <button>📷</button>
+        </section>
         <div className="video-container">
           <p className="loading">Loading video feed...</p>
           <video

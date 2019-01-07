@@ -4,6 +4,38 @@
   height: 100%;
 }
 
+.EmojiDrawer .controls {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  left: 0;
+  display: flex;
+  padding: .5em 1em;
+  background-color: #222;
+}
+
+.EmojiDrawer label {
+  display: flex;
+  height: 30px;
+  line-height: 30px;
+}
+
+.EmojiDrawer label span {
+  display: none;
+}
+
+.EmojiDrawer label.emoji {
+  margin: 0 1em;
+  flex-grow: 1;
+}
+
+.EmojiDrawer label,
+.EmojiDrawer select,
+.EmojiDrawer button {
+  color: white;
+  font-size: 1rem;
+}
+
 .EmojiDrawer canvas {
   flex-grow: 1;
 }
