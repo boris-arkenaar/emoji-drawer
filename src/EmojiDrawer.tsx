@@ -99,7 +99,10 @@ class EmojiDrawer extends React.Component {
     this.ctx.drawImage(this.video.current, 0, 0, videoWidth, videoHeight);
     this.ctx.restore();
     if (score > minScore) {
-      this.ctx.fillText(String.fromCodePoint(emoji), x-10, y+10);
+      this.ctx.font = '30px sans-serif'
+      this.ctx.textAlign = 'start';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText(String.fromCodePoint(emoji), x, y);
     }
   }
 
