@@ -11,11 +11,10 @@ interface ICamera {
 interface IEmojiDrawerState {
   bodyPart?: string,
   emoji?: number,
-  deviceId?: string
   videoWidth: number,
   videoHeight: number,
   cameras: ICamera[],
-  camera: number,
+  cameraIndex: number,
   loading: boolean,
   error: boolean
 }
@@ -49,7 +48,7 @@ class EmojiDrawer extends React.Component {
     videoWidth: 0,
     videoHeight: 0,
     cameras: [],
-    camera: -1,
+    cameraIndex: -1,
     loading: true,
     error: false
   };
@@ -71,13 +70,13 @@ class EmojiDrawer extends React.Component {
   }
 
   private handleSwitchCameraClick = () => {
-    console.log('switch?', this.state.cameras);
-    if (this.state.cameras.length > 1) {
-      const nextCamera = this.state.camera + 1;
-      const camera = nextCamera >= this.state.cameras.length ? 0 : nextCamera;
-      console.log('switch!', camera);
-      this.setState({ camera });
-    }
+    const { cameras, cameraIndex } = this.state;
+    console.log('switch?', cameras);
+    const nextCameraIndex = cameras.length > 1
+      ? (cameraIndex + 1) % cameras.length
+      : cameraIndex;
+    console.log('switch!', nextCameraIndex);
+    this.setState({ cameraIndex: nextCameraIndex });
   }
 
   private trackBodyPart = async () => {
@@ -124,20 +123,7 @@ class EmojiDrawer extends React.Component {
     this.setState({ videoWidth, videoHeight, loading: true });
   }
 
-  constructor(props) {
-    super(props);
-    this.canvas = React.createRef();
-    this.video = React.createRef();
-  }
-
-  public async componentDidMount() {
-    console.log('mount');
-    this.net = await posenet.load(0.75);
-    this.ctx = this.canvas.current.getContext('2d');
-    window.addEventListener('resize', this.getSizes);
-    this.getSizes();
-    this.trackBodyPart();
-
+  public getCameras = async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       console.log('devices', devices);
@@ -147,7 +133,7 @@ class EmojiDrawer extends React.Component {
         .map(({ deviceId, label }) => ({ deviceId, label }));
       console.log('cameras', cameras);
       if (cameras.length) {
-        this.setState({ cameras, camera: 0 });
+        this.setState({ cameras, cameraIndex: 0 });
       } else {
         this.setState({ loading: false });
       }
@@ -157,16 +143,31 @@ class EmojiDrawer extends React.Component {
     }
   }
 
+  constructor(props) {
+    super(props);
+    this.canvas = React.createRef();
+    this.video = React.createRef();
+  }
+
+  public async componentDidMount() {
+    window.addEventListener('resize', this.getSizes);
+    this.getSizes();
+    this.getCameras();
+    this.ctx = this.canvas.current.getContext('2d');
+    this.net = await posenet.load(0.75);
+    this.trackBodyPart();
+  }
+
   public componentWillUnmount() {
     this.net.dispose();
     window.removeEventListener('resize', this.getSizes);
   }
 
   public async componentDidUpdate(prevProps, prevState) {
-    const { videoWidth, videoHeight, camera } = this.state;
+    const { videoWidth, videoHeight, cameraIndex } = this.state;
     const widthChanged = videoWidth !== prevState.videoWidth;
     const heightChanged = videoHeight !== prevState.videoHeight;
-    const cameraChanged = camera !== prevState.camera;
+    const cameraChanged = cameraIndex !== prevState.cameraIndex;
 
     if (!(videoWidth
       && this.state.cameras.length
@@ -175,7 +176,7 @@ class EmojiDrawer extends React.Component {
       return;
     }
 
-    const currentCamera = this.state.cameras[camera];
+    const currentCamera = this.state.cameras[cameraIndex];
     const constraints = {
       audio: false,
       video: {
@@ -194,20 +195,8 @@ class EmojiDrawer extends React.Component {
     try {
       console.log('cameras before', this.state.cameras);
       this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.getCameras();
       const videoTracks = this.stream.getVideoTracks();
-      if (currentCamera && !currentCamera.label) {
-        const cameras = this.state.cameras.map((cameraData, index) => {
-          console.log('test', cameraData);
-          console.log('test2', { ...cameraData });
-          return camera === index
-            ? {
-              ...cameraData,
-              label: videoTracks[0].label
-            } : cameraData;
-        });
-        this.setState({ cameras });
-        console.log('cameras after', cameras);
-      }
       console.log('videoTracks', videoTracks);
       console.log('Using video device: ' + videoTracks[0].label);
       const video = this.video.current;
