@@ -9,8 +9,8 @@ interface ICamera {
 }
 
 interface IEmojiDrawerState {
-  bodyPart?: string,
-  emoji?: number,
+  bodyPartIndex: number,
+  emoji: string,
   videoWidth: number,
   videoHeight: number,
   cameras: ICamera[],
@@ -41,14 +41,16 @@ const bodyParts = [
 ];
 const emojis = Array(79)
   .fill(0)
-  .map((value, index) => index + 128512);
+  .map((value, index) => String.fromCodePoint(index + 128512));
 
 class EmojiDrawer extends React.Component {
   public state: IEmojiDrawerState = {
     videoWidth: 0,
     videoHeight: 0,
+    bodyPartIndex: 0,
     cameras: [],
     cameraIndex: -1,
+    emoji: emojis[0],
     loading: true,
     error: false
   };
@@ -60,13 +62,11 @@ class EmojiDrawer extends React.Component {
   private stream;
 
   private handleBodyPartChange = (event) => {
-    const bodyPart = event.target.value;
-    this.setState({ bodyPart });
+    this.setState({ bodyPartIndex: event.target.value });
   }
 
   private handleEmojiChange = (event) => {
-    const emoji = event.target.value;
-    this.setState({ emoji });
+    this.setState({ emoji: event.target.value });
   }
 
   private handleSwitchCameraClick = () => {
@@ -80,13 +80,12 @@ class EmojiDrawer extends React.Component {
   }
 
   private trackBodyPart = async () => {
-    if (this.state.videoWidth) {
-      const bodyPartIndex = this.state.bodyPart
-        ? bodyParts.indexOf(this.state.bodyPart)
-        : 0;
+    const { videoWidth, bodyPartIndex } = this.state;
+    if (videoWidth) {
+      const video = this.video.current;
 
       try {
-        const pose = await this.net.estimateSinglePose(this.video.current, 0.5, true, 16);
+        const pose = await this.net.estimateSinglePose(video, 0.5, true, 16);
         const {position: {x, y}, score} = pose.keypoints[bodyPartIndex];
         this.draw(x, y, score);
       } catch (error) {
@@ -98,27 +97,28 @@ class EmojiDrawer extends React.Component {
   }
 
   private draw = (x, y, score) => {
-    const { videoWidth, videoHeight } = this.state;
-    const emoji = this.state.emoji || emojis[0];
+    const { emoji, videoWidth, videoHeight } = this.state;
+    const video = this.video.current;
 
     this.ctx.clearRect(0, 0, videoWidth, videoHeight);
     this.ctx.save();
     this.ctx.scale(-1, 1);
     this.ctx.translate(-videoWidth, 0);
-    this.ctx.drawImage(this.video.current, 0, 0, videoWidth, videoHeight);
+    this.ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
     this.ctx.restore();
     if (score > minScore) {
       this.ctx.font = '30px sans-serif'
       this.ctx.textAlign = 'start';
       this.ctx.textBaseline = 'middle';
-      this.ctx.fillText(String.fromCodePoint(emoji), x, y);
+      this.ctx.fillText(emoji, x, y);
     }
   }
 
   private getSizes = () => {
     console.log('resized');
-    const videoWidth = this.canvas.current.offsetWidth;
-    const videoHeight = this.canvas.current.offsetHeight;
+    const canvas = this.canvas.current;
+    const videoWidth = canvas.offsetWidth;
+    const videoHeight = canvas.offsetHeight;
     console.log({ videoWidth, videoHeight });
     this.setState({ videoWidth, videoHeight, loading: true });
   }
@@ -222,16 +222,17 @@ class EmojiDrawer extends React.Component {
       error,
       cameras
     } = this.state;
+
     return (
       <div className="EmojiDrawer">
         <section className="controls">
           <label>
             <span>🦶:</span>
             <select onChange={this.handleBodyPartChange}>
-              { bodyParts.map((bodyPart) => (
+              { bodyParts.map((bodyPart, index) => (
                 <option
-                  key={bodyPart}
-                  value={bodyPart}
+                  key={index}
+                  value={index}
                 >
                   { bodyPart }
                 </option>
@@ -246,7 +247,7 @@ class EmojiDrawer extends React.Component {
                   key={emoji}
                   value={emoji}
                 >
-                  { String.fromCodePoint(emoji) }
+                  { emoji }
                 </option>
               ))}
             </select>
