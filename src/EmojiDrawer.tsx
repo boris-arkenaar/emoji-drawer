@@ -79,6 +79,70 @@ class EmojiDrawer extends React.Component {
     this.setState({ cameraIndex: nextCameraIndex });
   }
 
+  private getSizes = () => {
+    console.log('resized');
+    const canvas = this.canvas.current;
+    const videoWidth = canvas.offsetWidth;
+    const videoHeight = canvas.offsetHeight;
+    console.log({ videoWidth, videoHeight });
+    this.setState({ videoWidth, videoHeight, loading: true });
+  }
+
+  private getCameras = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      console.log('devices', devices);
+      const cameras = devices
+        .filter((device) => device.kind === 'videoinput')
+        // Turn it into plain objects
+        .map(({ deviceId, label }) => ({ deviceId, label }));
+      console.log('cameras', cameras);
+      if (cameras.length) {
+        this.setState({ cameras, cameraIndex: 0 });
+      } else {
+        this.setState({ loading: false });
+      }
+    } catch (error) {
+      console.error(error);
+      this.setState({ loading: false, error: true });
+    }
+  }
+
+  private getStream = async (videoWidth, videoHeight, deviceId) => {
+    const constraints = {
+      audio: false,
+      video: {
+        width: videoWidth,
+        height: videoHeight,
+        deviceId: { exact: deviceId }
+      }
+    };
+
+    if (this.stream) {
+      this.stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+    }
+
+    try {
+      console.log('cameras before', this.state.cameras);
+      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.getCameras();
+      const video = this.video.current;
+      if (video) {
+        video.srcObject = this.stream;
+        video.load();
+        video.onloadedmetadata = () => {
+          video.play();
+          this.setState({ loading: false });
+        };
+      }
+    } catch (error) {
+      console.error(error);
+      this.setState({ loading: false, error: true });
+    }
+  }
+
   private trackBodyPart = async () => {
     const { videoWidth, bodyPartIndex } = this.state;
     if (videoWidth) {
@@ -114,35 +178,6 @@ class EmojiDrawer extends React.Component {
     }
   }
 
-  private getSizes = () => {
-    console.log('resized');
-    const canvas = this.canvas.current;
-    const videoWidth = canvas.offsetWidth;
-    const videoHeight = canvas.offsetHeight;
-    console.log({ videoWidth, videoHeight });
-    this.setState({ videoWidth, videoHeight, loading: true });
-  }
-
-  public getCameras = async () => {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      console.log('devices', devices);
-      const cameras = devices
-        .filter((device) => device.kind === 'videoinput')
-        // Turn it into plain objects
-        .map(({ deviceId, label }) => ({ deviceId, label }));
-      console.log('cameras', cameras);
-      if (cameras.length) {
-        this.setState({ cameras, cameraIndex: 0 });
-      } else {
-        this.setState({ loading: false });
-      }
-    } catch (error) {
-      console.error(error);
-      this.setState({ loading: false, error: true });
-    }
-  }
-
   constructor(props) {
     super(props);
     this.canvas = React.createRef();
@@ -163,54 +198,20 @@ class EmojiDrawer extends React.Component {
     window.removeEventListener('resize', this.getSizes);
   }
 
-  public async componentDidUpdate(prevProps, prevState) {
-    const { videoWidth, videoHeight, cameraIndex } = this.state;
+  public componentDidUpdate(prevProps, prevState) {
+    const {
+      cameraIndex,
+      cameras,
+      videoHeight,
+      videoWidth
+    } = this.state;
     const widthChanged = videoWidth !== prevState.videoWidth;
     const heightChanged = videoHeight !== prevState.videoHeight;
     const cameraChanged = cameraIndex !== prevState.cameraIndex;
+    const somethingChanged = widthChanged || heightChanged || cameraChanged;
 
-    if (!(videoWidth
-      && this.state.cameras.length
-      && (widthChanged || heightChanged || cameraChanged)
-    )) {
-      return;
-    }
-
-    const currentCamera = this.state.cameras[cameraIndex];
-    const constraints = {
-      audio: false,
-      video: {
-        width: videoWidth,
-        height: videoHeight,
-        deviceId: { exact: currentCamera.deviceId }
-      }
-    };
-
-    if (this.stream) {
-      this.stream.getTracks().forEach((track) => {
-        track.stop();
-      });
-    }
-
-    try {
-      console.log('cameras before', this.state.cameras);
-      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
-      this.getCameras();
-      const videoTracks = this.stream.getVideoTracks();
-      console.log('videoTracks', videoTracks);
-      console.log('Using video device: ' + videoTracks[0].label);
-      const video = this.video.current;
-      if (video) {
-        video.srcObject = this.stream;
-        video.load();
-        video.onloadedmetadata = () => {
-          video.play();
-          this.setState({ loading: false });
-        };
-      }
-    } catch (error) {
-      console.error(error);
-      this.setState({ loading: false, error: true });
+    if (videoWidth && cameras.length && somethingChanged) {
+      this.getStream(videoWidth, videoHeight, cameras[cameraIndex].deviceId);
     }
   }
 
