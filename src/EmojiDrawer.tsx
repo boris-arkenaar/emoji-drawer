@@ -15,7 +15,9 @@ interface IEmojiDrawerState {
   videoWidth: number,
   videoHeight: number,
   cameras: ICamera[],
-  camera: number
+  camera: number,
+  loading: boolean,
+  error: boolean
 }
 
 const minScore = 0.5;
@@ -47,7 +49,9 @@ class EmojiDrawer extends React.Component {
     videoWidth: 0,
     videoHeight: 0,
     cameras: [],
-    camera: -1
+    camera: -1,
+    loading: true,
+    error: false
   };
 
   private canvas;
@@ -117,7 +121,7 @@ class EmojiDrawer extends React.Component {
     const videoWidth = this.canvas.current.offsetWidth;
     const videoHeight = this.canvas.current.offsetHeight;
     console.log({ videoWidth, videoHeight });
-    this.setState({ videoWidth, videoHeight });
+    this.setState({ videoWidth, videoHeight, loading: true });
   }
 
   constructor(props) {
@@ -134,15 +138,22 @@ class EmojiDrawer extends React.Component {
     this.getSizes();
     this.trackBodyPart();
 
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    console.log('devices', devices);
-    const cameras = devices
-      .filter((device) => device.kind === 'videoinput')
-      // Turn it into plain objects
-      .map(({ deviceId, label }) => ({ deviceId, label }));
-    console.log('cameras', cameras);
-    if (cameras.length) {
-      this.setState({ cameras, camera: 0 });
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      console.log('devices', devices);
+      const cameras = devices
+        .filter((device) => device.kind === 'videoinput')
+        // Turn it into plain objects
+        .map(({ deviceId, label }) => ({ deviceId, label }));
+      console.log('cameras', cameras);
+      if (cameras.length) {
+        this.setState({ cameras, camera: 0 });
+      } else {
+        this.setState({ loading: false });
+      }
+    } catch (error) {
+      console.error(error);
+      this.setState({ loading: false, error: true });
     }
   }
 
@@ -199,18 +210,29 @@ class EmojiDrawer extends React.Component {
       }
       console.log('videoTracks', videoTracks);
       console.log('Using video device: ' + videoTracks[0].label);
-      if (this.video.current) {
-        this.video.current.srcObject = this.stream;
-        this.video.current.load();
-        this.video.current.play();
+      const video = this.video.current;
+      if (video) {
+        video.srcObject = this.stream;
+        video.load();
+        video.onloadedmetadata = () => {
+          video.play();
+          this.setState({ loading: false });
+        };
       }
     } catch (error) {
       console.error(error);
+      this.setState({ loading: false, error: true });
     }
   }
 
   public render() {
-    const { videoWidth, videoHeight } = this.state;
+    const {
+      videoWidth,
+      videoHeight,
+      loading,
+      error,
+      cameras
+    } = this.state;
     return (
       <div className="EmojiDrawer">
         <section className="controls">
@@ -245,7 +267,15 @@ class EmojiDrawer extends React.Component {
           </button>
         </section>
         <div className="video-container">
-          <p className="loading">Loading video feed...</p>
+          { loading && (
+            <p className="loading">Loading video feed...</p>
+          )}
+          { !loading && error && (
+            <p className="loading">This browser does not appear to support using the camera, or the device has none.</p>
+          )}
+          { !loading && !error && !cameras.length && (
+            <p className="loading">This device does not appear to have any camera.</p>
+          )}
           <video
             style={{ display: 'none' }}
             height={videoHeight}
