@@ -10,13 +10,13 @@ interface ICamera {
 
 interface IEmojiDrawerState {
   bodyPartIndex: number,
-  emoji: string,
-  videoWidth: number,
-  videoHeight: number,
-  cameras: ICamera[],
   cameraIndex: number,
+  cameras: ICamera[],
+  emoji: string,
+  error: boolean,
   loading: boolean,
-  error: boolean
+  videoHeight: number,
+  videoWidth: number
 }
 
 const minScore = 0.5;
@@ -45,21 +45,21 @@ const emojis = Array(79)
 
 class EmojiDrawer extends React.Component {
   public state: IEmojiDrawerState = {
-    videoWidth: 0,
-    videoHeight: 0,
     bodyPartIndex: 0,
-    cameras: [],
     cameraIndex: -1,
+    cameras: [],
     emoji: emojis[0],
+    error: false,
     loading: true,
-    error: false
+    videoHeight: 0,
+    videoWidth: 0
   };
 
   private canvas;
   private ctx;
   private net;
-  private video;
   private stream;
+  private video;
 
   private handleBodyPartChange = (event) => {
     this.setState({ bodyPartIndex: event.target.value });
@@ -82,10 +82,10 @@ class EmojiDrawer extends React.Component {
   private getSizes = () => {
     console.log('resized');
     const canvas = this.canvas.current;
-    const videoWidth = canvas.offsetWidth;
     const videoHeight = canvas.offsetHeight;
+    const videoWidth = canvas.offsetWidth;
     console.log({ videoWidth, videoHeight });
-    this.setState({ videoWidth, videoHeight, loading: true });
+    this.setState({ loading: true, videoHeight, videoWidth });
   }
 
   private getCameras = async () => {
@@ -101,13 +101,13 @@ class EmojiDrawer extends React.Component {
       console.log('cameras', cameras);
       if (cameras.length) {
         const newCameraIndex = cameraIndex === -1 ? 0 : cameraIndex;
-        this.setState({ cameras, cameraIndex: newCameraIndex });
+        this.setState({ cameraIndex: newCameraIndex, cameras });
       } else {
         this.setState({ loading: false });
       }
     } catch (error) {
       console.error(error);
-      this.setState({ loading: false, error: true });
+      this.setState({ error: true, loading: false });
     }
   }
 
@@ -115,9 +115,9 @@ class EmojiDrawer extends React.Component {
     const constraints = {
       audio: false,
       video: {
-        width: videoWidth,
+        deviceId: { exact: deviceId },
         height: videoHeight,
-        deviceId: { exact: deviceId }
+        width: videoWidth
       }
     };
 
@@ -128,7 +128,6 @@ class EmojiDrawer extends React.Component {
     }
 
     try {
-      console.log('cameras before', this.state.cameras);
       this.stream = await navigator.mediaDevices.getUserMedia(constraints);
       this.getCameras();
       const video = this.video.current;
@@ -142,18 +141,18 @@ class EmojiDrawer extends React.Component {
       }
     } catch (error) {
       console.error(error);
-      this.setState({ loading: false, error: true });
+      this.setState({ error: true, loading: false });
     }
   }
 
   private trackBodyPart = async () => {
-    const { videoWidth, bodyPartIndex } = this.state;
+    const { bodyPartIndex, videoWidth } = this.state;
     if (videoWidth) {
       const video = this.video.current;
 
       try {
         const pose = await this.net.estimateSinglePose(video, 0.5, true, 16);
-        const {position: {x, y}, score} = pose.keypoints[bodyPartIndex];
+        const { score, position: {x, y} } = pose.keypoints[bodyPartIndex];
         this.draw(x, y, score);
       } catch (error) {
         console.error(error);
@@ -164,7 +163,7 @@ class EmojiDrawer extends React.Component {
   }
 
   private draw = (x, y, score) => {
-    const { emoji, videoWidth, videoHeight } = this.state;
+    const { emoji, videoHeight, videoWidth } = this.state;
     const video = this.video.current;
 
     this.ctx.clearRect(0, 0, videoWidth, videoHeight);
@@ -208,10 +207,10 @@ class EmojiDrawer extends React.Component {
       videoHeight,
       videoWidth
     } = this.state;
-    const widthChanged = videoWidth !== prevState.videoWidth;
-    const heightChanged = videoHeight !== prevState.videoHeight;
     const cameraChanged = cameraIndex !== prevState.cameraIndex;
-    const somethingChanged = widthChanged || heightChanged || cameraChanged;
+    const heightChanged = videoHeight !== prevState.videoHeight;
+    const widthChanged = videoWidth !== prevState.videoWidth;
+    const somethingChanged = cameraChanged || heightChanged || widthChanged;
 
     if (videoWidth && cameras.length && somethingChanged) {
       this.getStream(videoWidth, videoHeight, cameras[cameraIndex].deviceId);
@@ -220,11 +219,11 @@ class EmojiDrawer extends React.Component {
 
   public render() {
     const {
-      videoWidth,
-      videoHeight,
-      loading,
+      cameras,
       error,
-      cameras
+      loading,
+      videoHeight,
+      videoWidth
     } = this.state;
 
     return (
