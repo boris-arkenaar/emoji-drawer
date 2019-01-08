@@ -81,9 +81,14 @@ class EmojiDrawer extends React.Component {
       const bodyPartIndex = this.state.bodyPart
         ? bodyParts.indexOf(this.state.bodyPart)
         : 0;
-      const pose = await this.net.estimateSinglePose(this.video.current, 0.5, true, 16);
-      const {position: {x, y}, score} = pose.keypoints[bodyPartIndex];
-      this.draw(x, y, score);
+
+      try {
+        const pose = await this.net.estimateSinglePose(this.video.current, 0.5, true, 16);
+        const {position: {x, y}, score} = pose.keypoints[bodyPartIndex];
+        this.draw(x, y, score);
+      } catch (error) {
+        console.error(error);
+      }
     }
 
     requestAnimationFrame(this.trackBodyPart);
