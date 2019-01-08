@@ -21,22 +21,22 @@ interface IEmojiDrawerState {
 const minScore = 0.5;
 const bodyParts = [
   'nose',
-  'leftEye',
-  'rightEye',
-  'leftEar',
-  'rightEar',
-  'leftShoulder',
-  'rightShoulder',
-  'leftElbow',
-  'rightElbow',
-  'leftWrist',
-  'rightWrist',
-  'leftHip',
-  'rightHip',
-  'leftKnee',
-  'rightKnee',
-  'leftAnkle',
-  'rightAnkle'
+  'left eye',
+  'right eye',
+  'left ear',
+  'right ear',
+  'left shoulder',
+  'right shoulder',
+  'left elbow',
+  'right elbow',
+  'left wrist',
+  'right wrist',
+  'left hip',
+  'right hip',
+  'left knee',
+  'right knee',
+  'left ankle',
+  'right ankle'
 ];
 const emojis = Array(79)
   .fill(0)
