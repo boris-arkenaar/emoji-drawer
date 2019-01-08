@@ -89,6 +89,8 @@ class EmojiDrawer extends React.Component {
   }
 
   private getCameras = async () => {
+    const { cameraIndex } = this.state;
+
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       console.log('devices', devices);
@@ -98,7 +100,8 @@ class EmojiDrawer extends React.Component {
         .map(({ deviceId, label }) => ({ deviceId, label }));
       console.log('cameras', cameras);
       if (cameras.length) {
-        this.setState({ cameras, cameraIndex: 0 });
+        const newCameraIndex = cameraIndex === -1 ? 0 : cameraIndex;
+        this.setState({ cameras, cameraIndex: newCameraIndex });
       } else {
         this.setState({ loading: false });
       }
