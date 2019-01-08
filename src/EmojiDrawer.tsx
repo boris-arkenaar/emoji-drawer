@@ -71,20 +71,16 @@ class EmojiDrawer extends React.Component {
 
   private handleSwitchCameraClick = () => {
     const { cameras, cameraIndex } = this.state;
-    console.log('switch?', cameras);
     const nextCameraIndex = cameras.length > 1
       ? (cameraIndex + 1) % cameras.length
       : cameraIndex;
-    console.log('switch!', nextCameraIndex);
     this.setState({ cameraIndex: nextCameraIndex });
   }
 
   private getSizes = () => {
-    console.log('resized');
     const canvas = this.canvas.current;
     const videoHeight = canvas.offsetHeight;
     const videoWidth = canvas.offsetWidth;
-    console.log({ videoWidth, videoHeight });
     this.setState({ loading: true, videoHeight, videoWidth });
   }
 
@@ -93,12 +89,10 @@ class EmojiDrawer extends React.Component {
 
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      console.log('devices', devices);
       const cameras = devices
         .filter((device) => device.kind === 'videoinput')
         // Turn it into plain objects
         .map(({ deviceId, label }) => ({ deviceId, label }));
-      console.log('cameras', cameras);
       if (cameras.length) {
         const newCameraIndex = cameraIndex === -1 ? 0 : cameraIndex;
         this.setState({ cameraIndex: newCameraIndex, cameras });
