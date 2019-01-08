@@ -262,10 +262,10 @@ class EmojiDrawer extends React.Component {
             <p className="loading">Loading video feed...</p>
           )}
           { !loading && error && (
-            <p className="loading">This browser does not appear to support using the camera, or the device has none.</p>
+            <p className="loading">This browser does not appear to support using the camera.</p>
           )}
           { !loading && !error && !cameras.length && (
-            <p className="loading">This device does not appear to have any camera.</p>
+            <p className="loading">This device does not appear to have a camera.</p>
           )}
           <video
             style={{ display: 'none' }}
